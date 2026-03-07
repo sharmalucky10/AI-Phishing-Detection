@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>AI Phishing Detector</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: 'Segoe UI', Arial, sans-serif; width: 380px; background: #0f1117; color: #e2e8f0; min-height: 500px; }
+    .header { background: linear-gradient(135deg, #1a1f2e 0%, #0f1117 100%); border-bottom: 1px solid #2d3748; padding: 16px 20px; display: flex; align-items: center; gap: 12px; }
+    .header-icon { width: 36px; height: 36px; background: linear-gradient(135deg, #667eea, #764ba2); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+    .header-text h1 { font-size: 14px; font-weight: 700; color: #f7fafc; }
+    .header-text p { font-size: 10px; color: #718096; margin-top: 2px; }
+    .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #48bb78; margin-left: auto; box-shadow: 0 0 6px #48bb78; animation: pulse 2s infinite; }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.4; } }
+    .tabs { display: flex; background: #1a1f2e; border-bottom: 1px solid #2d3748; }
+    .tab { flex: 1; padding: 10px; text-align: center; font-size: 11px; color: #718096; cursor: pointer; border-bottom: 2px solid transparent; transition: all 0.2s; }
+    .tab.active { color: #667eea; border-bottom-color: #667eea; background: #0f1117; }
+    .content { padding: 16px; }
+    .tab-panel { display: none; }
+    .tab-panel.active { display: block; }
+    .input-label { font-size: 11px; color: #a0aec0; margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.5px; }
+    textarea { width: 100%; height: 130px; background: #1a1f2e; border: 1px solid #2d3748; border-radius: 8px; color: #e2e8f0; font-size: 12px; padding: 10px; resize: none; outline: none; line-height: 1.5; transition: border-color 0.2s; }
+    textarea:focus { border-color: #667eea; }
+    textarea::placeholder { color: #4a5568; }
+    .btn { width: 100%; padding: 10px; border: none; border-radius: 8px; font-size: 13px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 10px; }
+    .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+    .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+    .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+    .btn-secondary { background: #2d3748; color: #a0aec0; margin-top: 6px; }
+    .btn-secondary:hover { background: #374151; }
+    .result-card { margin-top: 14px; border-radius: 10px; overflow: hidden; display: none; }
+    .result-card.show { display: block; }
+    .result-header { padding: 14px 16px; display: flex; align-items: center; gap: 10px; }
+    .result-header.phishing { background: linear-gradient(135deg, #742a2a, #9b2335); }
+    .result-header.safe { background: linear-gradient(135deg, #1a3a2a, #22543d); }
+    .result-icon { font-size: 22px; }
+    .result-title { font-size: 15px; font-weight: 700; }
+    .result-subtitle { font-size: 10px; opacity: 0.8; margin-top: 2px; }
+    .result-confidence { margin-left: auto; text-align: right; }
+    .confidence-value { font-size: 18px; font-weight: 800; }
+    .confidence-label { font-size: 9px; opacity: 0.7; text-transform: uppercase; }
+    .result-body { background: #1a1f2e; padding: 12px 16px; }
+    .risk-badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 10px; font-weight: 700; text-transform: uppercase; margin-bottom: 10px; }
+    .risk-HIGH { background: #742a2a; color: #feb2b2; }
+    .risk-MEDIUM { background: #744210; color: #fbd38d; }
+    .risk-LOW { background: #4a5568; color: #a0aec0; }
+    .risk-SAFE { background: #1c4532; color: #9ae6b4; }
+    .risk-factors { margin-top: 6px; }
+    .risk-factor { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #a0aec0; padding: 4px 0; border-bottom: 1px solid #2d3748; }
+    .risk-factor:last-child { border-bottom: none; }
+    .risk-factor::before { content: '⚠'; font-size: 10px; }
+    .loader { display: none; text-align: center; padding: 20px; }
+    .loader.show { display: block; }
+    .spinner { width: 32px; height: 32px; border: 3px solid #2d3748; border-top-color: #667eea; border-radius: 50%; animation: spin 0.8s linear infinite; margin: 0 auto 10px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .loader-text { font-size: 12px; color: #718096; }
+    .scan-info { background: #1a1f2e; border: 1px solid #2d3748; border-radius: 8px; padding: 12px; margin-bottom: 10px; }
+    .scan-info p { font-size: 11px; color: #a0aec0; line-height: 1.6; }
+    .page-url { font-size: 10px; color: #667eea; margin-top: 6px; word-break: break-all; }
+    .history-item { display: flex; align-items: center; padding: 8px; background: #1a1f2e; border-radius: 6px; margin-bottom: 6px; gap: 8px; }
+    .history-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+    .history-dot.phishing { background: #fc8181; }
+    .history-dot.safe { background: #68d391; }
+    .history-text { font-size: 10px; color: #a0aec0; flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    .history-label { font-size: 9px; font-weight: 700; text-transform: uppercase; }
+    .history-label.phishing { color: #fc8181; }
+    .history-label.safe { color: #68d391; }
+    .empty-state { text-align: center; padding: 30px; color: #4a5568; font-size: 12px; }
+    .empty-icon { font-size: 32px; margin-bottom: 8px; }
+    .error-msg { background: #2d1515; border: 1px solid #742a2a; border-radius: 6px; padding: 10px 12px; font-size: 11px; color: #fc8181; margin-top: 10px; display: none; }
+    .error-msg.show { display: block; }
+    .footer { padding: 10px 16px; border-top: 1px solid #1a1f2e; text-align: center; font-size: 9px; color: #4a5568; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="header-icon">🛡️</div>
+    <div class="header-text">
+      <h1>AI Phishing Detector</h1>
+      <p>Powered by Machine Learning</p>
+    </div>
+    <div class="status-dot" id="statusDot" title="API Connected"></div>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-tab="manual">✍️ Paste Text</div>
+    <div class="tab" data-tab="page">🔍 Scan Page</div>
+    <div class="tab" data-tab="history">📋 History</div>
+  </div>
+
+  <div class="content">
+    <div class="tab-panel active" id="tab-manual">
+      <div class="input-label">Paste email or message text</div>
+      <textarea id="emailText" placeholder="Paste email content, SMS, or any suspicious message here..."></textarea>
+      <button class="btn btn-primary" id="analyzeBtn">🔍 Analyze with AI</button>
+      <button class="btn btn-secondary" id="clearBtn">✕ Clear</button>
+      <div class="error-msg" id="errorMsg"></div>
+      <div class="loader" id="loader">
+        <div class="spinner"></div>
+        <div class="loader-text">Analyzing with AI model...</div>
+      </div>
+      <div class="result-card" id="resultCard">
+        <div class="result-header" id="resultHeader">
+          <div class="result-icon" id="resultIcon"></div>
+          <div>
+            <div class="result-title" id="resultTitle"></div>
+            <div class="result-subtitle" id="resultSubtitle"></div>
+          </div>
+          <div class="result-confidence">
+            <div class="confidence-value" id="confidenceValue"></div>
+            <div class="confidence-label">Confidence</div>
+          </div>
+        </div>
+        <div class="result-body">
+          <span class="risk-badge" id="riskBadge"></span>
+          <div class="risk-factors" id="riskFactors"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-page">
+      <div class="scan-info">
+        <p>Scan the visible text on the current webpage to detect phishing content.</p>
+        <div class="page-url" id="pageUrl">Loading page info...</div>
+      </div>
+      <button class="btn btn-primary" id="scanPageBtn">🌐 Scan Current Page</button>
+      <div class="loader" id="loaderPage">
+        <div class="spinner"></div>
+        <div class="loader-text">Scanning page content...</div>
+      </div>
+      <div class="result-card" id="resultCardPage">
+        <div class="result-header" id="resultHeaderPage">
+          <div class="result-icon" id="resultIconPage"></div>
+          <div>
+            <div class="result-title" id="resultTitlePage"></div>
+            <div class="result-subtitle" id="resultSubtitlePage"></div>
+          </div>
+          <div class="result-confidence">
+            <div class="confidence-value" id="confidenceValuePage"></div>
+            <div class="confidence-label">Confidence</div>
+          </div>
+        </div>
+        <div class="result-body">
+          <span class="risk-badge" id="riskBadgePage"></span>
+          <div class="risk-factors" id="riskFactorsPage"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="tab-panel" id="tab-history">
+      <div id="historyList"></div>
+      <button class="btn btn-secondary" id="clearHistoryBtn" style="margin-top:10px;">🗑️ Clear History</button>
+    </div>
+  </div>
+
+  <div class="footer">BCA Capstone Project · AI Phishing Detector v1.0 · scikit-learn</div>
+  <script src="popup.js"></script>
+</body>
+</html>
