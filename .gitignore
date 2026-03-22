@@ -1,0 +1,3 @@
+dataset/phishing_email.csv
+model/phishing_model.pkl
+model/vectorizer.pkl
