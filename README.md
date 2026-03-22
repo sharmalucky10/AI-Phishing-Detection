@@ -1,12 +1,39 @@
 # 🛡️ AI-Powered Phishing Detection System
 
-![Python](https://img.shields.io/badge/Python-3.11-blue?style=flat-square&logo=python)
-![Flask](https://img.shields.io/badge/Flask-2.x-black?style=flat-square&logo=flask)
-![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-orange?style=flat-square&logo=scikit-learn)
-![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-yellow?style=flat-square&logo=googlechrome)
-![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)
+[![Python](https://img.shields.io/badge/Python-3.11-blue?style=flat-square&logo=python)](https://python.org)
+[![Flask](https://img.shields.io/badge/Flask-2.x-black?style=flat-square&logo=flask)](https://flask.palletsprojects.com)
+[![scikit-learn](https://img.shields.io/badge/scikit--learn-ML-orange?style=flat-square&logo=scikit-learn)](https://scikit-learn.org)
+[![Chrome Extension](https://img.shields.io/badge/Chrome-Extension-yellow?style=flat-square&logo=googlechrome)](https://developer.chrome.com)
+[![License](https://img.shields.io/badge/License-MIT-green?style=flat-square)](LICENSE)
 
-> **BCA Final Year Capstone Project** — An AI-powered browser extension that detects phishing emails and messages in real time using Machine Learning.
+> **BCA Final Year Capstone Project** — An AI-powered browser extension that detects phishing emails and messages in real time using Machine Learning trained on 82,486 real emails.
+
+---
+
+## 📊 Model Performance
+
+| Model | Accuracy | ROC-AUC | CV (5-fold) |
+|---|---|---|---|
+| Multinomial Naive Bayes | 95.50% | 0.9947 | 90.51% |
+| Logistic Regression | 98.12% | 0.9979 | 95.44% |
+| **Random Forest ✅ (Selected)** | **98.58%** | **0.9987** | **94.20%** |
+| Gradient Boosting | 94.27% | 0.9853 | 88.52% |
+
+**Confusion Matrix (Random Forest on 20,622 test emails):**
+```
+True Negatives  (Safe correctly identified)    : 9,742
+False Positives (Safe flagged as Phishing)     : 157
+False Negatives (Phishing missed)              : 135
+True Positives  (Phishing correctly detected)  : 10,588
+```
+
+**Classification Report:**
+```
+              precision    recall  f1-score   support
+        Safe       0.99      0.98      0.99      9,899
+    Phishing       0.99      0.99      0.99     10,723
+    accuracy                           0.99     20,622
+```
 
 ---
 
@@ -27,7 +54,7 @@ This project solves that problem using **Artificial Intelligence**:
 
 - 🔍 **Text Analysis** — Paste any email, SMS or message and detect phishing instantly
 - 🌐 **Page Scanner** — Scan any webpage for phishing content
-- 📊 **Confidence Score** — See how confident the AI is (e.g. 89% phishing)
+- 📊 **Confidence Score** — See how confident the AI is (e.g. 93% phishing)
 - ⚠️ **Risk Factors** — Shows WHY something is flagged (suspicious URL, urgency words etc.)
 - 📋 **Scan History** — Keeps track of your last 10 scans
 - 🟢 **API Status** — Live indicator showing if the backend is connected
@@ -43,7 +70,7 @@ popup.js sends HTTP POST to Flask API
         ↓
 app.py preprocesses text (clean + TF-IDF)
         ↓
-Random Forest model predicts
+Random Forest model predicts (98.58% accuracy)
         ↓
 Returns: phishing/safe + confidence % + risk factors
         ↓
@@ -52,21 +79,30 @@ Extension shows RED 🚨 or GREEN ✅ result
 
 ---
 
-## 🤖 Machine Learning Model
+## 🤖 Machine Learning Pipeline
 
-| Algorithm | Accuracy |
-|---|---|
-| ✅ Random Forest (selected) | 100% |
-| Gradient Boosting | 100% |
-| Naive Bayes | 84% |
-| Logistic Regression | 74% |
+```
+Raw Email Text
+      ↓
+Preprocessing (lowercase, remove URLs → urltoken, remove special chars)
+      ↓
+TF-IDF Vectorization (bigrams, 5000 features, sublinear TF)
+      ↓
+Random Forest Classifier (100 trees, n_jobs=-1)
+      ↓
+Prediction + Confidence Score
+```
 
-**NLP Pipeline:**
-1. Raw email text
-2. Clean text (lowercase, remove URLs, remove special chars)
-3. TF-IDF Vectorization (5000 features, bigrams)
-4. Random Forest Classifier (100 trees)
-5. Prediction + confidence score
+---
+
+## 🗂️ Dataset
+
+- **Size:** 82,486 labeled emails (42,891 phishing + 39,595 safe)
+- **Source:** Phishing Email Dataset — Kaggle
+- **Train/Test Split:** 75% train (61,864) / 25% test (20,622)
+
+> 📥 **Download:** Get `phishing_email.csv` from Kaggle and place it in the `/dataset/` folder before running `train_model.py`
+> The dataset file is not included in this repo due to GitHub's 100MB file size limit.
 
 ---
 
@@ -80,7 +116,6 @@ Extension shows RED 🚨 or GREEN ✅ result
 | Serialization | Pickle |
 | Frontend | HTML, CSS, JavaScript |
 | Browser | Chrome Extension API (Manifest V3) |
-| Dataset | CSV — 5000+ labeled phishing/safe emails |
 
 ---
 
@@ -104,8 +139,9 @@ AI-Phishing-Detection/
 │   └── icons/                  # Extension icons
 │
 ├── dataset/
-│   └── phishing_dataset.csv    # Training data
+│   └── phishing_email.csv      # ⚠️ Download from Kaggle (not in repo)
 │
+├── .gitignore
 └── README.md
 ```
 
@@ -119,28 +155,35 @@ git clone https://github.com/sharmalucky10/AI-Phishing-Detection.git
 cd AI-Phishing-Detection
 ```
 
-### Step 2 — Install Python dependencies
+### Step 2 — Download the dataset
+Download `phishing_email.csv` from Kaggle and place it in the `/dataset/` folder.
+
+### Step 3 — Install Python dependencies
 ```bash
 cd backend
 pip install -r requirements.txt
 ```
 
-### Step 3 — Train the AI model
+### Step 4 — Train the AI model
 ```bash
 cd model
 python train_model.py
 ```
-This will generate `phishing_model.pkl` and `vectorizer.pkl` inside the `model/` folder.
 
-### Step 4 — Start the Flask server
+Training takes ~15-20 minutes on first run. This generates:
+- `model/phishing_model.pkl`
+- `model/vectorizer.pkl`
+
+### Step 5 — Start the Flask server
 ```bash
-cd backend
+cd ../backend
 python app.py
 ```
-Server will start at: `http://127.0.0.1:5000`
 
-### Step 5 — Load the Chrome Extension
-1. Open Chrome and go to `chrome://extensions`
+Server starts at: `http://127.0.0.1:5000`
+
+### Step 6 — Load the Chrome Extension
+1. Open Chrome → go to `chrome://extensions`
 2. Enable **Developer Mode** (top right toggle)
 3. Click **Load unpacked**
 4. Select the `extension/` folder
@@ -180,7 +223,7 @@ Hi John, please find the meeting notes attached. See you tomorrow at 10 AM. Best
 ```json
 {
   "prediction": "phishing",
-  "confidence": 89.5,
+  "confidence": 93.4,
   "risk_level": "HIGH",
   "risk_factors": ["Suspicious TLD detected", "Urgency language found"]
 }
@@ -190,18 +233,19 @@ Hi John, please find the meeting notes attached. See you tomorrow at 10 AM. Best
 
 ## 🔮 Future Improvements
 
-- [ ] Deploy Flask API to cloud (AWS / Render) for public access
-- [ ] Upgrade to BERT deep learning model for higher accuracy
-- [ ] Gmail API integration for automatic inbox scanning
-- [ ] Hindi and regional language phishing detection
-- [ ] VirusTotal API integration for URL reputation checking
-- [ ] Admin analytics dashboard
+- Deploy Flask API to cloud (AWS / Render) for public access
+- Upgrade to BERT deep learning model for higher accuracy
+- Gmail API integration for automatic inbox scanning
+- Hindi and regional language phishing detection
+- VirusTotal API integration for URL reputation checking
+- Admin analytics dashboard
 
 ---
 
 ## 👤 Author
 
 **Lucky Sharma**
+
 - 📧 sharmalucky0581@gmail.com
 - 🔗 [LinkedIn](https://linkedin.com/in/lucky-sharma-923523341/)
 - 💻 [GitHub](https://github.com/sharmalucky10)
